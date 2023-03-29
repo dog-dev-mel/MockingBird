@@ -78,7 +78,7 @@ class Toolbox:
 
     def excepthook(self, exc_type, exc_value, exc_tb):
         traceback.print_exception(exc_type, exc_value, exc_tb)
-        self.ui.log("Exception: %s" % exc_value)
+        self.ui.log(f"Exception: {exc_value}")
         
     def setup_events(self):
         # Dataset, speaker and utterance selection
@@ -150,13 +150,13 @@ class Toolbox:
                          self.ui.current_speaker_name,
                          self.ui.current_utterance_name)
             name = str(fpath.relative_to(self.datasets_root))
-            speaker_name = self.ui.current_dataset_name + '_' + self.ui.current_speaker_name
-            
+            speaker_name = f'{self.ui.current_dataset_name}_{self.ui.current_speaker_name}'
+
             # Select the next utterance
             if self.ui.auto_next_checkbox.isChecked():
                 self.ui.browser_select_next()
         elif fpath == "":
-            return 
+            return
         else:
             name = fpath.name
             speaker_name = fpath.parent.name
@@ -168,7 +168,7 @@ class Toolbox:
         # Get the wav from the disk. We take the wav with the vocoder/synthesizer format for
         # playback, so as to have a fair comparison with the generated audio
         wav = Synthesizer.load_preprocess_wav(fpath)
-        self.ui.log("Loaded %s" % name)
+        self.ui.log(f"Loaded {name}")
 
         self.add_real_utterance(wav, name, speaker_name)
         
@@ -209,7 +209,7 @@ class Toolbox:
     def synthesize(self):
         self.ui.log("Generating the mel spectrogram...")
         self.ui.set_loading(1)
-        
+
         # Update the synthesizer random seed
         if self.ui.random_seed_checkbox.isChecked():
             seed = int(self.ui.seed_textbox.text())
@@ -228,16 +228,20 @@ class Toolbox:
         punctuation = '！，。、,' # punctuate and split/clean text
         processed_texts = []
         for text in texts:
-          for processed_text in re.sub(r'[{}]+'.format(punctuation), '\n', text).split('\n'):
-            if processed_text:
-                processed_texts.append(processed_text.strip())
+            processed_texts.extend(
+                processed_text.strip()
+                for processed_text in re.sub(
+                    f'[{punctuation}]+', '\n', text
+                ).split('\n')
+                if processed_text
+            )
         texts = processed_texts
         embed = self.ui.selected_utterance.embed
         embeds = [embed] * len(texts)
         specs = self.synthesizer.synthesize_spectrograms(texts, embeds, style_idx=int(self.ui.style_idx_textbox.text()))
         breaks = [spec.shape[1] for spec in specs]
         spec = np.concatenate(specs, axis=1)
-        
+
         self.ui.draw_spec(spec, "generated")
         self.current_generated = (self.ui.selected_utterance.speaker_name, spec, breaks, None)
         self.ui.set_loading(0)
@@ -332,8 +336,8 @@ class Toolbox:
         
     def init_encoder(self):
         model_fpath = self.ui.current_encoder_fpath
-        
-        self.ui.log("Loading the encoder %s... " % model_fpath)
+
+        self.ui.log(f"Loading the encoder {model_fpath}... ")
         self.ui.set_loading(1)
         start = timer()
         encoder.load_model(model_fpath)
@@ -343,7 +347,7 @@ class Toolbox:
     def init_synthesizer(self):
         model_fpath = self.ui.current_synthesizer_fpath
 
-        self.ui.log("Loading the synthesizer %s... " % model_fpath)
+        self.ui.log(f"Loading the synthesizer {model_fpath}... ")
         self.ui.set_loading(1)
         start = timer()
         self.synthesizer = Synthesizer(model_fpath)
@@ -357,7 +361,7 @@ class Toolbox:
         # Case of Griffin-lim
         if model_fpath is None:
             return 
-        
+
 
         # Sekect vocoder based on model name
         if model_fpath.name[0] == "g":
@@ -366,8 +370,8 @@ class Toolbox:
         else:
             vocoder = rnn_vocoder
             self.ui.log("set wavernn as vocoder")
-    
-        self.ui.log("Loading the vocoder %s... " % model_fpath)
+
+        self.ui.log(f"Loading the vocoder {model_fpath}... ")
         self.ui.set_loading(1)
         start = timer()
         vocoder.load_model(model_fpath)

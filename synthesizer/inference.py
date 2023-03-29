@@ -89,12 +89,11 @@ class Synthesizer:
             # Print some info about the model when it is loaded            
             tts_k = self._model.get_step() // 1000
 
-            simple_table([("Tacotron", str(tts_k) + "k"),
-                        ("r", self._model.r)])
-        
-        print("Read " + str(texts))
+            simple_table([("Tacotron", f"{str(tts_k)}k"), ("r", self._model.r)])
+
+        print(f"Read {texts}")
         texts = [" ".join(lazy_pinyin(v, style=Style.TONE3, neutral_tone_with_five=True)) for v in texts]
-        print("Synthesizing " + str(texts))
+        print(f"Synthesizing {texts}")
         # Preprocess text inputs
         inputs = [text_to_sequence(text, hparams.tts_cleaner_names) for text in texts]
         if not isinstance(embeddings, list):
@@ -160,13 +159,12 @@ class Synthesizer:
         Creates a mel spectrogram from an audio file in the same manner as the mel spectrograms that 
         were fed to the synthesizer when training.
         """
-        if isinstance(fpath_or_wav, str) or isinstance(fpath_or_wav, Path):
+        if isinstance(fpath_or_wav, (str, Path)):
             wav = Synthesizer.load_preprocess_wav(fpath_or_wav)
         else:
             wav = fpath_or_wav
-        
-        mel_spectrogram = audio.melspectrogram(wav, hparams).astype(np.float32)
-        return mel_spectrogram
+
+        return audio.melspectrogram(wav, hparams).astype(np.float32)
     
     @staticmethod
     def griffin_lim(mel):
